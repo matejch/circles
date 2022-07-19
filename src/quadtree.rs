@@ -1,7 +1,8 @@
-use std::borrow::Borrow;
+use std::collections::HashMap;
 use web_sys::console;
-use crate::logic::Point;
-use crate::spheres::Ball;
+use crate::spheres::{Ball, BallPair, is_ball_in_cell, is_ball_in_cell_diag};
+use itertools::Itertools;
+
 
 #[derive(Debug)]
 pub struct QuadTreeNode {
@@ -9,89 +10,130 @@ pub struct QuadTreeNode {
     y: f64,
     w: f64,
     h: f64,
-    id: u64,
-    balls: Vec<Ball>,
-    top_left: Option<Box<QuadTreeNode>>,
-    top_right: Option<Box<QuadTreeNode>>,
-    bottom_left: Option<Box<QuadTreeNode>>,
-    bottom_right: Option<Box<QuadTreeNode>>,
+    id: usize,
+    depth: u8,
+    is_collision_candidate: bool,
+    children_are_collision_candidates: bool,
+    balls: HashMap<usize, Ball>,
+    top_left: ChildNode,
+    top_right: ChildNode,
+    bottom_left: ChildNode,
+    bottom_right: ChildNode,
 
 }
 
-fn is_ball_in_cell(x: f64, y: f64, w: f64, h: f64, ball: &Ball) -> bool {
-    if ball.pos.x < x || ball.pos.x > x + w || ball.pos.y < y || ball.pos.y > y + h {
-        return false;
-    }
-    return true;
-}
+pub type ChildNode = Option<Box<QuadTreeNode>>;
+
+// fn get_child_collisions(child:&Option<Box<QuadTreeNode>>) -> Vec<BallPair> {
+//     if child.is_some() {
+//
+//         return child.as_ref().unwrap().
+//                                           find_collision_candidates();
+//     }
+//     return vec![]
+// }
+
 
 impl QuadTreeNode {
-    pub fn new(x: f64, y: f64, w: f64, h: f64, balls: Vec<Ball>, id: u64) -> Option<Box<QuadTreeNode>> {
-        let mut top_left: Vec<Ball> = Vec::new();
-        let mut top_right: Vec<Ball> = Vec::new();
-        let mut bottom_left: Vec<Ball> = Vec::new();
-        let mut bottom_right: Vec<Ball> = Vec::new();
+    pub fn new(x: f64, y: f64, w: f64, h: f64, balls: HashMap<usize, Ball>, id: usize, depth: u8) -> ChildNode {
+        let size = balls.len();
+        if size > 0 {
+            //console::log_1(&format!("QTN {} has {}", id, size).into());
+        }
+        let mut top_left: HashMap<usize, Ball> = HashMap::new();
+        let mut top_right: HashMap<usize, Ball> = HashMap::new();
+        let mut bottom_left: HashMap<usize, Ball> = HashMap::new();
+        let mut bottom_right: HashMap<usize, Ball> = HashMap::new();
 
-        let mut tl_node: Option<Box<QuadTreeNode>>;
-        let mut tr_node: Option<Box<QuadTreeNode>>;
-        let mut bl_node: Option<Box<QuadTreeNode>>;
-        let mut br_node: Option<Box<QuadTreeNode>>;
-
-        if balls.len() == 1 && 2.0 * balls[0].radius > w {
+        if size == 0
+            || depth > 4
+            || w < 1.0 {
             return None;
+        }
+
+
+        if size == 1 {
+            let elm = balls.values().next().unwrap();
+            if 1.0 * elm.next_radius > w {
+                return None;
+            }
         }
 
         let new_w = w / 2.0;
         let new_h = h / 2.0;
 
-        for ball in balls.iter().cloned() {
-            //top-left check
-            if is_ball_in_cell(x, y, new_w, new_h, &ball) {
-                top_left.push(ball);
+        let ball_radii = balls.values().map(|ball| ball.radius).collect::<Vec<f64>>();
+        //let largest_radius = ball_radii.iter().max_by(|a, b| a.total_cmp(b)).expect("expect one largest element");
+        let max_radius = ball_radii.iter().copied().fold(f64::NAN, f64::max);
+
+        if max_radius > w  && size > 1 {
+            return Option::from(Box::new(Self {
+                x,
+                y,
+                w,
+                h,
+                id,
+                balls,
+                is_collision_candidate: true,
+                depth,
+                children_are_collision_candidates: false,
+                top_left: None,
+                top_right: None,
+                bottom_left: None,
+                bottom_right: None,
+            }));
+        }
+
+
+        for (key, ball) in balls.clone() {
+            //top-left cell
+            if is_ball_in_cell_diag(x, y, new_w, new_h, &ball) {
+                top_left.insert(key, ball);
             }
-            //top-right check
-            if is_ball_in_cell(x + new_w, y, new_w, new_h, &ball) {
-                top_right.push(ball);
+            //top-right cell
+            if is_ball_in_cell_diag(x + new_w, y, new_w, new_h, &ball) {
+                top_right.insert(key, ball);
             }
-            //bottom-left check
-            if is_ball_in_cell(x, y + new_h, new_w, new_h, &ball) {
-                bottom_left.push(ball);
+            //bottom-left cell
+            if is_ball_in_cell_diag(x, y + new_h, new_w, new_h, &ball) {
+                bottom_left.insert(key, ball);
             }
 
-            //bottom-right check
-            if is_ball_in_cell(x + new_w, y + new_h, new_w, new_h, &ball) {
-                bottom_right.push(ball);
+            //bottom-right cell
+            if is_ball_in_cell_diag(x + new_w, y + new_h, new_w, new_h, &ball) {
+                bottom_right.insert(key, ball);
             }
         }
 
-        if top_left.len() > 0 {
-            tl_node = QuadTreeNode::new(x, y, new_w, new_h, top_left, 10 * id + 1);
-        } else {
-            tl_node = None;
-        }
+        let tl_count = top_left.len();
+        let tr_count = top_right.len();
+        let bl_count = bottom_left.len();
+        let br_count = bottom_right.len();
 
-        if top_right.len() > 0 {
-            tr_node = QuadTreeNode::new(x + new_w, y, new_w, new_h, top_right, 10 * id + 2);
-        } else {
-            tr_node = None;
-        }
+        let tl_node: ChildNode = QuadTreeNode::new(x, y, new_w, new_h, top_left, 10 * id + 1, depth + 1);
+        let tr_node: ChildNode = QuadTreeNode::new(x + new_w, y, new_w, new_h, top_right, 10 * id + 2, depth + 1);
+        let bl_node: ChildNode = QuadTreeNode::new(x, y + new_h, new_w, new_h, bottom_left, 10 * id + 3, depth + 1);
+        let br_node: ChildNode = QuadTreeNode::new(x + new_w, y + new_h, new_w, new_h, bottom_right, 10 * id + 4, depth + 1);
 
-        if bottom_left.len() > 0 {
-            bl_node = QuadTreeNode::new(x, y + new_h, new_w, new_h, bottom_left, 10 * id + 3);
-        } else {
-            bl_node = None;
-        }
 
-        if bottom_right.len() > 0 {
-            br_node = QuadTreeNode::new(x + new_w, y + new_h, new_w, new_h, bottom_right, 10 * id + 4);
-        } else {
-            br_node = None;
-        }
+        // am i collision candidate?
+        let mut is_collision_candidate = false;
 
         // if all children are None, it means we have a leaf node
-        if tl_node.is_none() && tr_node.is_none() && bl_node.is_none() && br_node.is_none() && balls.len() > 1 {
-            console::log_1(&format!("QTN {} has {}", id, balls.len()).into());
+        let all_empty = vec![&tl_node, &tr_node, &bl_node, &br_node]
+            .iter()
+            .all(|node| node.is_none());
+
+
+        if all_empty && size > 1 {
+            //no children but more than one ball means we have a potential collision
+            //console::log_1(&format!("QTN {} has {}", id, balls.len()).into());
+            is_collision_candidate = true;
         }
+
+        let any_children_candidate = vec![tl_count, tr_count, bl_count, br_count]
+            .iter()
+            .any(|item| item > &1);
 
         Option::from(Box::new(Self {
             x,
@@ -100,6 +142,9 @@ impl QuadTreeNode {
             h,
             id,
             balls,
+            is_collision_candidate,
+            depth,
+            children_are_collision_candidates: any_children_candidate,
             top_left: tl_node,
             top_right: tr_node,
             bottom_left: bl_node,
@@ -107,16 +152,52 @@ impl QuadTreeNode {
         }))
     }
 
-    pub fn search(&self, ball: Ball) -> bool {
-        todo!()
+    pub fn search(&self, id:usize) -> Vec<usize> {
+        let mut rez: Vec<usize> = vec![];
+        if self.balls.contains_key(&id) {
+            rez.push(self.id);
+        }
+        if self.top_left.is_some() {
+            let node = self.top_left.as_ref().unwrap();
+            rez.extend(node.search(id));
+        }
+        if self.top_right.is_some() {
+            let node = self.top_right.as_ref().unwrap();
+            rez.extend(node.search(id));
+        }
+        if self.bottom_left.is_some() {
+            let node = self.bottom_left.as_ref().unwrap();
+            rez.extend(node.search(id));
+        }
+        if self.bottom_right.is_some() {
+            let node = self.bottom_right.as_ref().unwrap();
+            rez.extend(node.search(id));
+        }
+
+        return rez;
     }
 
-    pub fn insert(&self) {
-        todo!()
-    }
+    pub fn find_collision_candidates(&self) -> Vec<BallPair> {
+        let mut candidates = vec![];
 
-    pub fn remove(&self) {
-        todo!()
+        if self.is_collision_candidate {
+            let combos = self.balls.values().cloned().collect::<Vec<Ball>>();
+
+            for c in combos.iter().combinations(2) {
+                candidates.push(BallPair { first: *c[0], second: *c[1] })
+            }
+        }
+
+
+        candidates.extend(get_child_collisions(&self.top_left));
+        candidates.extend(get_child_collisions(&self.top_right));
+        candidates.extend(get_child_collisions(&self.bottom_left));
+        candidates.extend(get_child_collisions(&self.bottom_right));
+        if candidates.len() > 0 {
+            //    console::log_1(&format!("found candidate {} {}", self.id, candidates.len()).into());
+        }
+
+        return candidates;
     }
 
     pub fn get_rectangles(&self) -> Vec<Rect> {
@@ -124,55 +205,107 @@ impl QuadTreeNode {
         let y = self.y;
         let w = self.w;
         let h = self.h;
-        let many = self.balls.len() > 1;
+        let many = self.is_collision_candidate;
+
+        if w < 2.0 {
+            return vec![];
+        }
 
         let r: Rect = Rect { x, y, w, h, many };
         let mut rects = vec![r];
 
-        //let top_left_rects = self.top_left.as_ref().unwrap().get_rectangles();
 
         if self.top_left.is_some() {
             let tl = self.top_left.as_ref().unwrap();
-            // console::log_1(&format!("in get_rectangles, got TL " ).into());
-            // console::log_1(&format!("TL = {} {} {} {}",tl.x, tl.y, tl.w, tl.h ).into());
-
             let additional = tl.get_rectangles();
             rects.extend(additional);
         }
 
         if self.top_right.is_some() {
             let tl = self.top_right.as_ref().unwrap();
-            // console::log_1(&format!("in get_rectangles, got TR " ).into());
-            // console::log_1(&format!("TL = {} {} {} {}",tl.x, tl.y, tl.w, tl.h ).into());
             let additional = tl.get_rectangles();
             rects.extend(additional);
         }
 
         if self.bottom_left.is_some() {
             let tl = self.bottom_left.as_ref().unwrap();
-            // console::log_1(&format!("in get_rectangles, got BL " ).into());
-            // console::log_1(&format!("TL = {} {} {} {}",tl.x, tl.y, tl.w, tl.h ).into());
             let additional = tl.get_rectangles();
             rects.extend(additional);
         }
 
         if self.bottom_right.is_some() {
             let tl = self.bottom_right.as_ref().unwrap();
-            // console::log_1(&format!("in get_rectangles, got BR " ).into());
-            // console::log_1(&format!("TL = {} {} {} {}",tl.x, tl.y, tl.w, tl.h ).into());
             let additional = tl.get_rectangles();
             rects.extend(additional);
         }
 
-        // let top_right_rects = self.top_right..as_ref().unwrap().get_rectangles();
-        // let bottom_left_rects = self.bottom_left..as_ref().unwrap().get_rectangles();
-        // let bottom_right_rects = self.bottom_right..as_ref().unwrap().get_rectangles();
-
-
-        //rects.extend(top_left_rects);
-
         return rects;
     }
+
+
+    pub fn info_collisions(&self) -> Vec<String> {
+        let mut lines = vec![];
+
+        if (self.is_collision_candidate || self.children_are_collision_candidates) {
+            let keys: Vec<String> = self.balls.keys().map(|key| key.to_string()).collect();
+            let keyo = keys.join(",");
+            lines.push(format!(" {} is:{} children:{} balls:{:#?}", self.id, self.is_collision_candidate, self.children_are_collision_candidates, keyo));
+        } else {
+            return lines;
+        }
+
+
+        if self.top_left.is_some() {
+            let node = self.top_left.as_ref().unwrap();
+            lines.extend(node.info_collisions());
+        }
+
+        if self.top_right.is_some() {
+            let node = self.top_right.as_ref().unwrap();
+            lines.extend(node.info_collisions());
+        }
+
+
+        if self.bottom_left.is_some() {
+            let node = self.bottom_left.as_ref().unwrap();
+            lines.extend(node.info_collisions());
+        }
+
+        if self.bottom_right.is_some() {
+            let node = self.bottom_right.as_ref().unwrap();
+            lines.extend(node.info_collisions());
+        }
+
+        return lines;
+    }
+
+    pub fn info_ball_quads(&self) -> Vec<String> {
+        let mut lines = vec![];
+
+        for id in self.balls.keys().sorted() {
+            let quad_ids = self.search(*id);
+            let quad_ids_str:Vec<String> = quad_ids.iter().map(|id| id.to_string()).collect();
+            let line = quad_ids_str.join(",");
+            lines.push(format!(" ball id:{} is in {}", id, line));
+        }
+
+        return lines;
+    }
+}
+
+
+
+
+
+fn get_child_collisions(node: &ChildNode) -> Vec<BallPair> {
+    if node.is_some() {
+        let cands = node.as_ref().unwrap().find_collision_candidates();
+        if cands.len() > 0 {
+            //console::log_1(&format!("candidates in this node: {:#?}", cands).into());
+            return cands;
+        }
+    }
+    return vec![];
 }
 
 pub struct Rect {
@@ -183,32 +316,4 @@ pub struct Rect {
     pub many: bool,
 }
 
-#[cfg(test)]
-mod testovi {
-    use crate::quadtree::QuadTreeNode;
-    use crate::spheres::{Ball, BLACK_BALL, BLUE_BALL, GRAY_BALL, RED_BALL, WHITE_BALL};
 
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn construct_quadtree() {
-        let width = 800;
-        let height = 600;
-
-        let balls = vec![
-            Ball::random_ball(width, height, BLACK_BALL),
-            Ball::random_ball(width, height, WHITE_BALL),
-            Ball::random_ball(width, height, GRAY_BALL),
-            Ball::random_ball(width, height, RED_BALL),
-            Ball::random_ball(width, height, BLUE_BALL),
-        ];
-
-        let qt = QuadTreeNode::new(0.0, 0.0, width as f64, height as f64, balls, 0);
-        println!("{}", format!("{:#?}", qt));
-        assert_eq!(true, true)
-    }
-}

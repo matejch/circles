@@ -32,6 +32,10 @@ wee_alloc = { version = "0.4.5", optional = true }
 js-sys = "0.3.58"
 quote = "1.0.20"
 syn = "1.0.98"
+itertools = "0.10.3"
+
+
+
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
