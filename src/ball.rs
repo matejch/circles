@@ -3,9 +3,9 @@ use js_sys::Math::{max, min};
 use web_sys::console;
 use crate::constants;
 use crate::constants::{TINY, SMALL, BIG, LARGE, FULL, SLOW, FAST, EXPLODES, GROWS, SHRINK, COLOSSAL};
-use crate::logic::Point;
 use crate::random::{random_range, random_sign, random_velocity};
-use crate::spheres::BallState::{Shrinking, Vanish, Normal, Expanding};
+use crate::geometry::{Point, Rect};
+use crate::ball::BallState::{Shrinking, Vanish, Normal, Expanding};
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -220,23 +220,30 @@ impl Ball {
     pub fn show_state(&self) {
         console::log_1(&format!("bala na poziciji: {} {}", self.pos.x, self.pos.y).into());
     }
-}
+    
+    pub fn bounding_rect_next(&self) -> Rect {
+        Rect {
+            x: self.next_position.x - self.next_radius,
+            y: self.next_position.y + self.next_radius,
+            w: 2.0*self.next_radius,
+            h: 2.0*self.next_radius,
+            many: false,
+        }
+        
+    }
 
-impl Point {
-    pub fn random_point(width: usize, height: usize) -> Self {
-        Self {
-            x: random_range(width / 10, 9 * width / 10) as f64,
-            y: random_range(width / 10, 9 * height / 10) as f64,
-
+    pub fn bounding_rect_current(&self) -> Rect {
+        Rect {
+            x: self.pos.x - self.next_radius,
+            y: self.pos.y + self.next_radius,
+            w: 2.0*self.next_radius,
+            h: 2.0*self.next_radius,
+            many: false,
         }
     }
-    pub fn random_velocity(min: f64, max: f64) -> Self {
-        Self {
-            x: random_sign() * random_velocity(min, max),
-            y: 0.0,//random_sign() * random_velocity(min, max),
-        }
-    }
+    
 }
+
 
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -259,16 +266,6 @@ fn balls_distance_squared(ball1: Ball, ball2: Ball) -> f64 {
     return circles_distance_squared(ball1.next_position.x, ball1.next_position.y, ball2.next_position.x, ball2.next_position.y);
 }
 
-
-// pub fn is_point_in_circle(x: f64, y: f64: f64, point_x: f64, point_y: f64, radius:f64) -> bool {
-//     if point_x > x
-//         && point_x < x + w
-//         && point_y > y
-//         && point_y < y + h {
-//         return true;
-//     }
-//     false
-// }
 
 pub fn is_point_in_rect(x: f64, y: f64, w: f64, h: f64, point_x: f64, point_y: f64) -> bool {
     if point_x > x

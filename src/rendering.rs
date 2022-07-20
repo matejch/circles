@@ -2,7 +2,7 @@ use std::cell::RefMut;
 use std::f64::consts::PI;
 use web_sys::{CanvasRenderingContext2d, console};
 use crate::{GameState, get_context};
-use crate::spheres::{Ball, BLACK, Color, DEBUG_RED, RED};
+use crate::ball::{Ball, BLACK, Color, DEBUG_RED, RED};
 
 impl GameState {
 

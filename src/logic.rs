@@ -1,11 +1,10 @@
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
-use std::fmt;
-use std::ops::Div;
 use web_sys::console;
-use crate::quadtree::{QuadTreeNode, Rect};
-use crate::spheres::{ACTIVE_BALL, Ball, BLACK_BALL, BLUE_BALL, BROWN_BALL, calc_moment_of_collision, CYAN_BALL, FORREST_BALL, GRAY_BALL, GREEN_BALL, MAGENTA_BALL, MAROON_BALL, NAVY_BALL, OLIVE_BALL, ORANGE, ORANGE_BALL, PURPLE_BALL, RED_BALL, resolve_collision_active, SILVER_BALL, TEAL_BALL, WHITE_BALL, YELLOW_BALL};
-use crate::spheres::BallState::{Expanding, Normal, Shrinking, Vanish};
+use crate::geometry::{Point, Rect};
+use crate::quadtree::{QuadTreeNode};
+use crate::ball::{ACTIVE_BALL, Ball, BLACK_BALL, BLUE_BALL, BROWN_BALL, calc_moment_of_collision, CYAN_BALL, FORREST_BALL, GRAY_BALL, GREEN_BALL, MAGENTA_BALL, MAROON_BALL, NAVY_BALL, OLIVE_BALL, ORANGE, ORANGE_BALL, PURPLE_BALL, RED_BALL, resolve_collision_active, SILVER_BALL, TEAL_BALL, WHITE_BALL, YELLOW_BALL};
+use crate::ball::BallState::{Expanding, Normal, Shrinking, Vanish};
 
 #[derive(Debug)]
 pub struct GameState {
@@ -151,7 +150,19 @@ impl GameState {
     }
 
     fn update_quadtree(&mut self) {
-        self.quad = QuadTreeNode::new(0.0, 0.0, self.width as f64, self.height as f64, self.objects.clone(), 0, 0);
+        let rect = Rect{
+            x: 0.0,
+            y: 0.0,
+            w:self.width as f64,
+            h:self.height as f64,
+        };
+        self.quad = QuadTreeNode::new(rect, 0, 0);
+
+        for ball in self.objects.clone() {
+            self.quad.insert_ball(ball);
+        }
+
+        console::log_1(&format!(" quad tree: {:#?}", self.quad).into());
     }
 
     pub fn show_state(&self) {
@@ -178,18 +189,6 @@ impl GameState {
     }
 }
 
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Point {
-    pub x: f64,
-    pub y: f64,
-}
-
-impl fmt::Display for Point {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} <{}>", self.x, self.y)
-    }
-}
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -44,23 +44,6 @@ pub fn get_debug_context() -> CanvasRenderingContext2d {
 
     //get DPI
     let dpi = win.device_pixel_ratio();
-//get canvas
-//     let canvas = document.getElementById('myCanvas');
-// //get context
-//     let ctx = canvas.getContext('2d');
-//     function fix_dpi() {
-// //get CSS height
-// //the + prefix casts it to an integer
-// //the slice method gets rid of "px"
-//         let style_height = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
-// //get CSS width
-//         let style_width = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
-// //scale the canvas
-//         canvas.setAttribute('height', style_height * dpi);
-//         canvas.setAttribute('width', style_width * dpi);
-//     }
-
-
 
     let document = document();
     let canvas = document.get_element_by_id("canvas_debug").unwrap();

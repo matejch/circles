@@ -3,8 +3,9 @@ mod rendering;
 mod utils;
 mod random;
 mod constants;
-mod spheres;
+mod ball;
 mod quadtree;
+mod geometry;
 
 use logic::{GameState};
 
@@ -102,7 +103,7 @@ pub fn run() -> Result<(), JsValue> {
                     game.render_state(&ctx, true);
                     game.render_quad_tree(&ctx, false);
 
-                    game.render_debug_ball_quad_info(&debug_ctx);
+                    //game.render_debug_ball_quad_info(&debug_ctx);
                 }
 
                 // if game.is_paused && game.is_render_debug {
