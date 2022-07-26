@@ -14,11 +14,11 @@ use std::rc::Rc;
 use js_sys::Function;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{ console, KeyboardEvent, MouseEvent};
+use web_sys::{console, HtmlElement, KeyboardEvent, MouseEvent};
 
 use crate::logic::GameResult;
 use crate::rendering::write_text;
-use crate::utils::{get_context, get_debug_context, request_animation_frame, window};
+use crate::utils::{document, get_context, get_debug_context, request_animation_frame, window};
 
 
 thread_local! {
@@ -92,7 +92,17 @@ pub fn run() -> Result<(), JsValue> {
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         GAME.with(|game|
             {
+                let mut doc = document();
+
+                let root_container = document()
+                    .get_element_by_id("score")
+                    .unwrap_throw()
+                    .dyn_into::<HtmlElement>()
+                    .unwrap_throw();
+
                 let mut game = game.borrow_mut();
+                root_container.set_inner_html(&game.captured.to_string());
+
                 if game.result == GameResult::Lost {
                     let _ = f.borrow_mut().take();
                     return;

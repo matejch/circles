@@ -14,17 +14,28 @@ use js_sys::Math::random;
 use web_sys::console;
 use crate::constants::{HEIGHT, WIDTH};
 
+
+#[derive(Debug)]
+pub struct Level {
+    pub id: usize,
+    pub max_shots: usize,
+    pub num_of_balls: usize,
+    pub num_caputured: usize,
+
+}
+
 #[derive(Debug)]
 pub struct GameState {
     pub rect: Rect,
     pub objects: HashMap<usize, Ball>,
     pub next_id: usize,
-    pub captured: u8,
-    pub shots: u8,
+    pub captured: usize,
+    pub shots: usize,
     pub result: GameResult,
     pub tree: Option<Box<QuadTreeNode>>,
     pub is_paused: bool,
     pub is_render_debug: bool,
+    pub level: Level,
 }
 
 impl GameState {
@@ -39,7 +50,7 @@ impl GameState {
         self.objects.insert(new_id, *ball);
     }
 
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(width: usize, height: usize, level: Level) -> Self {
         let mut new_state = Self {
             rect: Rect {
                 x: 0.0,
@@ -55,6 +66,7 @@ impl GameState {
             tree: None,
             is_paused: false,
             is_render_debug: false,
+            level,
         };
 
         new_state.insert_object(Ball::random_ball(0, width, height, BLACK_BALL).borrow_mut());
@@ -85,6 +97,8 @@ impl GameState {
         let qt = QuadTreeNode::new(rect, 0, 0);
         //console::log_1(&format!(" quad tree: {:#?}", qt).into());  //console::log_1(&format!(" quad tree: {:#?}", qt).into());
         new_state.tree = qt;
+        new_state.captured = 0;
+        new_state.shots = level.max_shots;
 
         new_state
     }
@@ -209,7 +223,10 @@ impl GameState {
     }
 
     pub fn tick(&mut self) {
+        let num_objects = &self.objects.len();
         self.objects.retain(|_key, obj| obj.ball_state != Vanish);
+        self.captured += num_objects - self.objects.len();
+
 
         for (_, obj) in &mut self.objects {
             obj.tick();

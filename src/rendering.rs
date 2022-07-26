@@ -2,7 +2,7 @@ use std::cell::RefMut;
 use std::f64::consts::PI;
 use web_sys::{CanvasGradient, CanvasRenderingContext2d, console};
 use crate::{GameState, get_context};
-use crate::ball::{Ball, BLACK, BLUE, Color, DEBUG_RED, GOLD, GREEN, RED, WHITE};
+use crate::ball::{Ball, BLACK, BLUE, Color, DEBUG_RED, GOLD, GREEN, RED, SILVER, WHITE};
 
 impl GameState {
 
@@ -10,6 +10,7 @@ impl GameState {
         if clear {
             self.clear_canvas(ctx);
         }
+
         if self.objects.len() == 0 {
             return;
         }
@@ -18,6 +19,7 @@ impl GameState {
           //  let bb = obj.bounding_rect_current();
             //draw_rect(&ctx,bb.x, bb.y, bb.w, bb.h, BLACK);
         }
+
     }
 
     pub fn render_debug_collision_info(&self, ctx: &CanvasRenderingContext2d) {
@@ -77,27 +79,40 @@ fn draw_ball_xy(ctx: &CanvasRenderingContext2d, x: f64, y: f64, radius: f64, col
     ctx.begin_path();
     ctx.set_global_alpha(0.8);
    // let grd = ctx.create_radial_gradient(0.0,0.0,0.0, color.r as f64, color.g as f64, color.b as f64);
-    let grd: CanvasGradient = ctx.create_linear_gradient(
-        0,
-        100,
-        100
-    );
+   //  let grd: CanvasGradient = ctx.create_linear_gradient(
+   //      x-radius,
+   //      y-radius,
+   //      x+radius,
+   //      y+radius
+   //  );
 
-    grd.add_color_stop(0.0, &WHITE.to_string());
-    grd.add_color_stop(0.5, &GREEN.to_string());
-    grd.add_color_stop(1.0, &BLUE.to_string());
+    let grd: CanvasGradient = ctx.create_radial_gradient(
+        x,
+        y,
+        3.3*radius/4.0,
+        x,
+        y,
+        radius,
+    ).unwrap();
 
-    ctx.set_fill_style(&color.to_string().into());
-    //ctx.set_fill_style(&color.to_string().into());
-    ctx.arc(x, y, radius, 0.0, 1.0 * PI);
-    ctx.close_path();
-    ctx.fill();
-    ctx.stroke();
+
+
+
+    grd.add_color_stop(0.0, &color.to_string());
+    grd.add_color_stop(1.0, &SILVER.to_string());
+    //grd.add_color_stop(0.5, &WHITE.to_string());
+
+    // ctx.set_fill_style(&color.to_string().into());
+    // //ctx.set_fill_style(&color.to_string().into());
+    // ctx.arc(x, y, radius, 0.0, 1.0 * PI);
+    // ctx.close_path();
+    // ctx.fill();
+    // ctx.stroke();
     ctx.set_fill_style(&grd);
     ctx.begin_path();
-    ctx.arc(x, y, radius, PI, 2.0 * PI);
+    ctx.arc(x, y, radius, 0.0*PI, 2.0 * PI);
     ctx.fill();
-    ctx.stroke();
+    //ctx.stroke();
     ctx.close_path();
 }
 
