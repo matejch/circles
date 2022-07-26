@@ -33,6 +33,7 @@ js-sys = "0.3.58"
 quote = "1.0.20"
 syn = "1.0.98"
 itertools = "0.10.3"
+const-str = "0.4.3"
 
 
 
@@ -44,12 +45,12 @@ wasm-bindgen-test = "0.3.13"
 version = "0.3.58"
 features = [
     "Document", "Element", "HtmlElement", "Window", "console",
-    "CssStyleDeclaration", "HtmlDivElement", "KeyboardEvent", "HtmlCanvasElement", "CanvasRenderingContext2d",
+    "CssStyleDeclaration", "HtmlDivElement", "KeyboardEvent", "HtmlCanvasElement", "CanvasGradient","CanvasRenderingContext2d",
     "MouseEvent"
 ]
 
 
-[profile.release]
-debug = true
+#[profile.release]
+#debug = true
 
 

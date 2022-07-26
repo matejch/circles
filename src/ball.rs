@@ -37,11 +37,13 @@ pub const NAVY: Color = Color { r: 0, g: 0, b: 128 };
 pub const MAROON: Color = Color { r: 128, g: 0, b: 0 };
 pub const FORREST: Color = Color { r: 0, g: 128, b: 0 };
 pub const SILVER: Color = Color { r: 192, g: 192, b: 192 };
-pub const ORANGE: Color = Color { r: 255, g: 165, b: 0 };
 pub const BROWN: Color = Color { r: 128, g: 69, b: 19 };
+pub const ORANGE: Color = Color { r: 255, g: 165, b: 0 };
+pub const GOLD: Color = Color { r: 255, g: 215, b: 0 };
 
 
 pub const DEBUG_RED: Color = Color { r: 50, g: 0, b: 0 };
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BallState {
@@ -58,46 +60,49 @@ pub struct BallType {
     growth_speed: f64,
     growth_size: f64,
     velocity: f64,
+    name: &'static str,
 }
 
 macro_rules! impl_ball_types_constants {
-    ($name: ident, $color: expr, $radius: expr, $velocity: expr, $growth_size: expr, $growth_speed: expr) => {
+    ($name: ident, $color: expr, $radius: expr, $velocity: expr, $growth_size: expr, $growth_speed: expr, $ball_name: expr) => {
         pub const $name: BallType = BallType{
             color: $color,
             radius: $radius,
             velocity: $velocity,
             growth_speed: $growth_speed,
             growth_size: $growth_size,
+            name: $ball_name
          };
     }
 }
 
-impl_ball_types_constants!(BLACK_BALL, BLACK, LARGE, FAST, COLOSSAL, GROWS);
-impl_ball_types_constants!(WHITE_BALL, WHITE, BIG, SLOW, LARGE, EXPLODES);
 
-impl_ball_types_constants!(GRAY_BALL, GRAY, SMALL, FAST, FULL, GROWS);
-impl_ball_types_constants!(RED_BALL, RED, SMALL, FAST, FULL, EXPLODES);
-impl_ball_types_constants!(BLUE_BALL, BLUE, SMALL, FAST, FULL, GROWS);
-impl_ball_types_constants!(GREEN_BALL, GREEN, SMALL, FAST, FULL, EXPLODES);
-impl_ball_types_constants!(YELLOW_BALL, YELLOW, SMALL, SLOW, FULL, GROWS);
-impl_ball_types_constants!(CYAN_BALL, CYAN, SMALL, SLOW, FULL, EXPLODES);
-impl_ball_types_constants!(MAGENTA_BALL, MAGENTA, SMALL, SLOW, FULL, GROWS);
-impl_ball_types_constants!(TEAL_BALL, TEAL, SMALL, SLOW, FULL, EXPLODES);
-impl_ball_types_constants!(OLIVE_BALL, OLIVE, TINY, FAST, FULL, GROWS);
-impl_ball_types_constants!(PURPLE_BALL, PURPLE, TINY, FAST, FULL, EXPLODES);
-impl_ball_types_constants!(NAVY_BALL, NAVY, TINY, FAST, FULL, GROWS);
-impl_ball_types_constants!(MAROON_BALL, MAROON, TINY, FAST, FULL, EXPLODES);
-impl_ball_types_constants!(FORREST_BALL, FORREST, TINY, SLOW, FULL, GROWS);
-impl_ball_types_constants!(SILVER_BALL, SILVER, TINY, SLOW, COLOSSAL, EXPLODES);
-impl_ball_types_constants!(ORANGE_BALL, ORANGE, TINY, SLOW, FULL, GROWS);
-impl_ball_types_constants!(BROWN_BALL, BROWN, TINY, SLOW, FULL, EXPLODES);
+impl_ball_types_constants!(BLACK_BALL, BLACK, LARGE, FAST, COLOSSAL, GROWS,const_str::to_str!("BLACK_BALL"));
+impl_ball_types_constants!(WHITE_BALL, WHITE, BIG, SLOW, LARGE, EXPLODES,const_str::to_str!("WHITE_BALL"));
+impl_ball_types_constants!(GRAY_BALL, GRAY, SMALL, FAST, FULL, GROWS,const_str::to_str!("GRAY_BALL"));
+impl_ball_types_constants!(RED_BALL, RED, SMALL, FAST, FULL, EXPLODES,const_str::to_str!("RED_BALL"));
+impl_ball_types_constants!(BLUE_BALL, BLUE, SMALL, FAST, FULL, GROWS,const_str::to_str!("BLUE_BALL"));
+impl_ball_types_constants!(GREEN_BALL, GREEN, SMALL, FAST, FULL, EXPLODES,const_str::to_str!("GREEN_BALL"));
+impl_ball_types_constants!(YELLOW_BALL, YELLOW, SMALL, SLOW, FULL, GROWS,const_str::to_str!("YELLOW_BALL"));
+impl_ball_types_constants!(CYAN_BALL, CYAN, SMALL, SLOW, FULL, EXPLODES,const_str::to_str!("CYAN_BALL"));
+impl_ball_types_constants!(MAGENTA_BALL, MAGENTA, SMALL, SLOW, FULL, GROWS,const_str::to_str!("MAGENTA_BALL"));
+impl_ball_types_constants!(TEAL_BALL, TEAL, SMALL, SLOW, FULL, EXPLODES,const_str::to_str!("TEAL_BALL"));
+impl_ball_types_constants!(OLIVE_BALL, OLIVE, TINY, FAST, FULL, GROWS,const_str::to_str!("OLIVE_BALL"));
+impl_ball_types_constants!(PURPLE_BALL, PURPLE, TINY, FAST, FULL, EXPLODES,const_str::to_str!("PURPLE_BALL"));
+impl_ball_types_constants!(NAVY_BALL, NAVY, TINY, FAST, FULL, GROWS,const_str::to_str!("NAVY_BALL"));
+impl_ball_types_constants!(MAROON_BALL, MAROON, TINY, FAST, FULL, EXPLODES,const_str::to_str!("MAROON_BALL"));
+impl_ball_types_constants!(FORREST_BALL, FORREST, TINY, SLOW, FULL, GROWS,const_str::to_str!("FORREST_BALL"));
+impl_ball_types_constants!(SILVER_BALL, SILVER, TINY, SLOW, COLOSSAL, EXPLODES,const_str::to_str!("SILVER_BALL"));
+impl_ball_types_constants!(ORANGE_BALL, ORANGE, TINY, SLOW, FULL, GROWS,const_str::to_str!("ORANGE_BALL"));
+impl_ball_types_constants!(BROWN_BALL, BROWN, TINY, SLOW, FULL, EXPLODES,const_str::to_str!("BROWN_BALL"));
 
-impl_ball_types_constants!(ACTIVE_BALL, WHITE, TINY, SLOW, FULL, GROWS);
+impl_ball_types_constants!(ACTIVE_BALL, GOLD, TINY, SLOW, FULL, GROWS, const_str::to_str!("ACTIVE_BALL"));
 
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ball {
     pub id: usize,
+    pub ball_type: &'static str,
     pub pos: Point,
     pub radius: f64,
     // velocity is a 2d vector
@@ -107,8 +112,8 @@ pub struct Ball {
     pub radius_growth: f64,
     pub max_radius: f64,
     //
-    pub(crate) next_position: Point,
-    pub(crate) next_radius: f64,
+    pub next_position: Point,
+    pub next_radius: f64,
     pub next_velocity: Point,
     pub next_ball_state: BallState,
 
@@ -118,6 +123,7 @@ impl Ball {
     pub fn new(id: usize, pos: Point, velocity: Point, ball_type: BallType, ball_state: BallState) -> Self {
         Self {
             id,
+            ball_type: ball_type.name,
             pos,
             velocity,
             ball_state,
@@ -139,6 +145,7 @@ impl Ball {
 
         Self {
             id,
+            ball_type: ball_type.name,
             pos,
             velocity: vel,
             radius: ball_type.radius,
@@ -220,41 +227,87 @@ impl Ball {
     pub fn show_state(&self) {
         console::log_1(&format!("bala na poziciji: {} {}", self.pos.x, self.pos.y).into());
     }
-    
+
     pub fn bounding_rect_next(&self) -> Rect {
         Rect {
             x: self.next_position.x - self.next_radius,
-            y: self.next_position.y + self.next_radius,
-            w: 2.0*self.next_radius,
-            h: 2.0*self.next_radius,
-            many: false,
+            y: self.next_position.y - self.next_radius,
+            w: 2.0 * self.next_radius,
+            h: 2.0 * self.next_radius,
         }
-        
     }
 
     pub fn bounding_rect_current(&self) -> Rect {
         Rect {
             x: self.pos.x - self.next_radius,
-            y: self.pos.y + self.next_radius,
-            w: 2.0*self.next_radius,
-            h: 2.0*self.next_radius,
-            many: false,
+            y: self.pos.y - self.next_radius,
+            w: 2.0 * self.next_radius,
+            h: 2.0 * self.next_radius,
         }
     }
-    
+}
+
+#[derive(Debug, Clone, Copy, Hash)]
+pub struct BallPairIds {
+    pub first: usize,
+    pub second: usize,
+}
+
+impl BallPairIds {
+    pub(crate) fn into_array(self) -> [usize; 2] { [self.first, self.second] }
+}
+
+impl PartialEq for BallPairIds {
+    fn eq(&self, other: &Self) -> bool {
+        if (self.first == other.first && self.second == other.second)
+            || (self.first == other.second && self.second == other.first) {
+            return true;
+        }
+        false
+    }
+}
+
+impl Eq for BallPairIds {}
+
+impl IntoIterator for BallPairIds {
+    type Item = usize;
+    type IntoIter = std::array::IntoIter<usize, 2>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        std::array::IntoIter::new([self.first, self.second])
+    }
 }
 
 
-
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct BallPair {
-    pub(crate) first: Ball,
-    pub(crate) second: Ball,
+    pub first: Ball,
+    pub second: Ball,
 }
+
+impl PartialEq for BallPair {
+    fn eq(&self, other: &Self) -> bool {
+        if (self.first == other.first && self.second == other.second)
+            || (self.first == other.second && self.second == other.first) {
+            return true;
+        }
+        false
+    }
+}
+
+impl Eq for BallPair {}
 
 impl BallPair {
     pub fn is_collision(&self) -> bool {
-        return balls_distance_squared(self.first, self.second) <= f64::powi(self.first.next_radius, 2) + f64::powi(self.second.next_radius, 2);
+        balls_distance_squared(self.first, self.second) <= (f64::powi(self.first.radius, 2) + f64::powi(self.second.radius, 2))
+    }
+
+    pub fn is_collision_bb(&self) -> bool {
+        let bb_first = self.first.bounding_rect_current();
+        let bb_second = self.second.bounding_rect_current();
+
+        bb_first.intersects(bb_second)
+
     }
 }
 
@@ -262,16 +315,16 @@ fn circles_distance_squared(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 }
 
-fn balls_distance_squared(ball1: Ball, ball2: Ball) -> f64 {
-    return circles_distance_squared(ball1.next_position.x, ball1.next_position.y, ball2.next_position.x, ball2.next_position.y);
+pub fn balls_distance_squared(ball1: Ball, ball2: Ball) -> f64 {
+    return circles_distance_squared(ball1.pos.x, ball1.pos.y, ball2.pos.x, ball2.pos.y);
 }
 
 
 pub fn is_point_in_rect(x: f64, y: f64, w: f64, h: f64, point_x: f64, point_y: f64) -> bool {
-    if point_x > x
-        && point_x < x + w
-        && point_y > y
-        && point_y < y + h {
+    if point_x >= x
+        && point_x <= x + w
+        && point_y >= y
+        && point_y <= y + h {
         return true;
     }
     false

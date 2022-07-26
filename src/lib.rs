@@ -86,7 +86,7 @@ pub fn run() -> Result<(), JsValue> {
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
     let ctx = get_context();
-    let debug_ctx = get_debug_context();
+    //let debug_ctx = get_debug_context();
 
 
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
@@ -101,7 +101,7 @@ pub fn run() -> Result<(), JsValue> {
                 {
                     game.tick();
                     game.render_state(&ctx, true);
-                    game.render_quad_tree(&ctx, false);
+                    //game.render_quad_tree(&ctx, false);
 
                     //game.render_debug_ball_quad_info(&debug_ctx);
                 }
