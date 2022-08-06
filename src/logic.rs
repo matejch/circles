@@ -1,41 +1,42 @@
 use crate::ball::BallState::{Expanding, Normal, Shrinking, Vanish};
-use crate::ball::{
-    balls_distance_squared, calc_moment_of_collision, resolve_collision_active, Ball, BallPair,
-    BallPairIds, ACTIVE_BALL, BLACK_BALL, BLUE_BALL, BROWN_BALL, CYAN_BALL, FORREST_BALL,
-    GRAY_BALL, GREEN_BALL, MAGENTA_BALL, MAROON_BALL, NAVY_BALL, OLIVE_BALL, ORANGE, ORANGE_BALL,
-    PURPLE_BALL, RED_BALL, SILVER_BALL, TEAL_BALL, WHITE_BALL, YELLOW_BALL,
-};
+use crate::ball::{balls_distance_squared, Ball, BallPair, BallPairIds, BallType, ACTIVE_BALL};
 use crate::geometry::{Point, Rect, RenderingRect};
-use crate::quadtree::{ChildNode, QuadTreeNode};
-use std::borrow::{Borrow, BorrowMut};
+use crate::quadtree::QuadTreeNode;
+use std::borrow::BorrowMut;
 use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
-use js_sys::Math::random;
 use web_sys::console;
-use crate::constants::{HEIGHT, WIDTH};
 
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Level {
-    pub id: usize,
     pub max_shots: usize,
     pub num_of_balls: usize,
-    pub num_caputured: usize,
+    pub num_captured: usize,
+}
 
+impl Level {
+    fn new(max_shots: usize, num_of_balls: usize, num_captured: usize) -> Self {
+        Self {
+            max_shots,
+            num_of_balls,
+            num_captured,
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct GameState {
-    pub rect: Rect,
-    pub objects: HashMap<usize, Ball>,
-    pub next_id: usize,
+    pub all_levels: Vec<Level>,
     pub captured: usize,
-    pub shots: usize,
-    pub result: GameResult,
-    pub tree: Option<Box<QuadTreeNode>>,
+    pub captured_required: usize,
     pub is_paused: bool,
     pub is_render_debug: bool,
-    pub level: Level,
+    pub level_id: usize,
+    pub next_id: usize,
+    pub objects: HashMap<usize, Ball>,
+    pub rect: Rect,
+    pub result: GameResult,
+    pub shots: usize,
+    pub tree: Option<Box<QuadTreeNode>>,
 }
 
 impl GameState {
@@ -50,7 +51,29 @@ impl GameState {
         self.objects.insert(new_id, *ball);
     }
 
-    pub fn new(width: usize, height: usize, level: Level) -> Self {
+    pub fn new(width: usize, height: usize) -> Self {
+        let all_levels: Vec<Level> = vec![
+            Level::new(1, 5, 1),
+            Level::new(1, 5, 2),
+            Level::new(1, 8, 3),
+            Level::new(1, 10, 5),
+            Level::new(1, 15, 7),
+            Level::new(1, 20, 9),
+            Level::new(1, 20, 12),
+            Level::new(1, 25, 15),
+            Level::new(1, 30, 20),
+            Level::new(1, 30, 22),
+            Level::new(1, 35, 27),
+            Level::new(1, 40, 31),
+            Level::new(1, 45, 40),
+            Level::new(1, 55, 47),
+            Level::new(1, 60, 50),
+            Level::new(1, 65, 57),
+            Level::new(1, 65, 60),
+            Level::new(1, 90, 80),
+            Level::new(1, 99, 97),
+        ];
+
         let mut new_state = Self {
             rect: Rect {
                 x: 0.0,
@@ -61,32 +84,17 @@ impl GameState {
             objects: HashMap::new(),
             next_id: 1,
             captured: 0,
+            captured_required: 0,
             shots: 3,
             result: GameResult::Playing,
             tree: None,
             is_paused: false,
             is_render_debug: false,
-            level,
+            all_levels,
+            level_id: 0,
         };
 
-        new_state.insert_object(Ball::random_ball(0, width, height, BLACK_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, WHITE_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, GRAY_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, RED_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, BLUE_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, GREEN_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, YELLOW_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, CYAN_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, MAGENTA_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, TEAL_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, OLIVE_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, PURPLE_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, NAVY_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, MAROON_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, FORREST_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, SILVER_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, ORANGE_BALL).borrow_mut());
-        new_state.insert_object(Ball::random_ball(0, width, height, BROWN_BALL).borrow_mut());
+        new_state.next_level();
 
         let rect = Rect {
             x: 0.0,
@@ -95,15 +103,81 @@ impl GameState {
             h: height as f64,
         };
         let qt = QuadTreeNode::new(rect, 0, 0);
-        //console::log_1(&format!(" quad tree: {:#?}", qt).into());  //console::log_1(&format!(" quad tree: {:#?}", qt).into());
         new_state.tree = qt;
-        new_state.captured = 0;
-        new_state.shots = level.max_shots;
 
         new_state
     }
 
-    pub fn check_win_lose(&self) {}
+    pub fn next_level(&mut self) {
+        let next_level_id: usize = self.level_id + 1;
+        let level: Level = self.all_levels[next_level_id].clone();
+
+        self.captured = 0;
+        self.captured_required = level.num_captured;
+        self.shots = level.max_shots;
+        self.result = GameResult::Playing;
+
+        while self.objects.len() < level.num_of_balls {
+            self.insert_object(&mut Ball::random_ball(
+                0,
+                self.rect.w as usize,
+                self.rect.h as usize,
+                BallType::random_ball_type(),
+            ));
+        }
+
+        self.level_id = next_level_id;
+    }
+
+    pub fn restart(&mut self) {
+        let level: Level = self.all_levels[self.level_id].clone();
+
+        self.captured = 0;
+        self.captured_required = level.num_captured;
+        self.shots = level.max_shots;
+        self.result = GameResult::Playing;
+
+        while self.objects.len() < level.num_of_balls {
+            self.insert_object(&mut Ball::random_ball(
+                0,
+                self.rect.w as usize,
+                self.rect.h as usize,
+                BallType::random_ball_type(),
+            ));
+        }
+    }
+
+    pub fn quit(&self) {}
+
+    pub fn get_stats(&self) -> String {
+        format!(
+            "CAPTURED: {} / {}, SHOTS LEFT: {}",
+            self.captured, self.captured_required, self.shots
+        )
+    }
+
+    pub fn get_goal(&self) -> String {
+        format!(
+            "LEVEL {} - CAPTURE {} SPACEBALLS",
+            self.level_id, self.captured_required
+        )
+    }
+
+    pub fn check_win_lose(&self) -> GameResult {
+        let active_balls = self
+            .objects
+            .values()
+            .filter(|item| item.ball_state == Expanding || item.ball_state == Shrinking)
+            .count();
+
+        if self.shots == 0 && active_balls == 0 {
+            if self.captured >= self.captured_required {
+                return GameResult::Won;
+            }
+            return GameResult::Lost;
+        }
+        GameResult::Playing
+    }
 
     pub fn get_rectangles(&self) -> Vec<RenderingRect> {
         if self.tree.is_none() {
@@ -128,23 +202,15 @@ impl GameState {
 
         // find collisions candidates
 
-        //console::log_1(&format!(" #balls {} {:#?}", self.objects.values().len(), self.objects.values()).into());
         let mut candidates: HashSet<BallPairIds> = HashSet::new();
         for ball in self.objects.values() {
-            //candidates.extend(self.tree.as_ref().expect("").search(ball.id));
             let found = self.tree.as_ref().expect("").search(ball.id);
-            //console::log_1(&format!(" ball {}, candidates {} {:#?}", ball.id, candidates.len(), found).into());
-
             for f in found {
                 candidates.insert(f);
             }
-            // console::log_1(&format!(" ball {}, candidates {}", ball.id, candidates.len()).into());
         }
 
         // check collisions
-        //
-        //console::log_1(&format!("checking collisions {}", candidates.len()).into());
-
         for cand in candidates {
             let mut first_ball_state = self
                 .objects
@@ -173,31 +239,6 @@ impl GameState {
             let my_dist = ball1.radius * ball1.radius + ball2.radius * ball2.radius;
 
             if ball_pair.is_collision_bb() {
-                //let t = calc_moment_of_collision(ball1, ball2);
-
-                // if first_ball_state == Normal && second_ball_state == Normal {
-                //     let mut second_ball = self
-                //         .objects
-                //         .get_mut(&cand.second)
-                //         .expect("this ball should exist");
-                //
-                //     second_ball.next_velocity.y = - 1.01*second_ball.velocity.y;
-                //     second_ball.next_velocity.x = - 0.99*second_ball.velocity.x;
-                //
-                //     let mut first_ball = self
-                //         .objects
-                //         .get_mut(&cand.first)
-                //         .expect("this ball should exist");
-                //     first_ball.next_velocity.y = -1.01*first_ball.velocity.y;
-                //     first_ball.next_velocity.x = -0.99*first_ball.velocity.x;
-                //
-                //
-                //     // let nid = self.gen_next_id();
-                //     // if random() > 0.97 {
-                //     //     self.insert_object(&mut Ball::random_ball(nid, WIDTH - 10, HEIGHT - 10, BROWN_BALL))
-                //     // }
-                // }
-
                 if (first_ball_state == Shrinking || first_ball_state == Expanding)
                     && second_ball_state == Normal
                 {
@@ -207,6 +248,7 @@ impl GameState {
                         .expect("this ball should exist");
 
                     second_ball.next_ball_state = Expanding;
+                    second_ball.set_captured();
                 }
 
                 if (second_ball_state == Shrinking || second_ball_state == Expanding)
@@ -217,27 +259,31 @@ impl GameState {
                         .get_mut(&cand.first)
                         .expect("this ball should exist");
                     first_ball.next_ball_state = Expanding;
+                    first_ball.set_captured();
                 }
             }
         }
     }
 
+    fn get_number_of_vanished_balls(&self) -> usize {
+        self.all_levels[self.level_id].num_of_balls - self.objects.len()
+            + self.all_levels[self.level_id].max_shots
+            - self.shots
+    }
+
     pub fn tick(&mut self) {
         let num_objects = &self.objects.len();
         self.objects.retain(|_key, obj| obj.ball_state != Vanish);
-        self.captured += num_objects - self.objects.len();
+        self.captured = self.get_number_of_vanished_balls()
+            + self.objects.values().filter(|obj| obj.is_captured).count();
 
-
+        self.result = self.check_win_lose();
         for (_, obj) in &mut self.objects {
             obj.tick();
         }
 
         self.update_quadtree();
         self.handle_collisions();
-
-        if self.objects.len() == 0 {
-            return;
-        }
 
         for (_, obj) in &mut self.objects {
             obj.apply_tick_changes();
@@ -252,7 +298,6 @@ impl GameState {
             qt.as_deref_mut().expect("").insert_ball(ball);
         }
         self.tree = qt;
-        //console::log_1(&format!(" quad tree: {:#?}", self.tree).into());
     }
 
     pub fn show_state(&self) {
@@ -269,6 +314,7 @@ impl GameState {
             return;
         }
 
+        console::log_1(&format!("{} {}", x, y).into());
         let mut active_ball = Ball::new(
             self.gen_next_id(),
             Point { x, y },
@@ -276,9 +322,19 @@ impl GameState {
             ACTIVE_BALL,
             Expanding,
         );
+        active_ball.is_captured = true;
         self.insert_object(active_ball.borrow_mut());
         self.shots -= 1;
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChangeState {
+    PlayPause,
+    NextLevel,
+    RestartLevel,
+    Quit,
+    NoChange,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

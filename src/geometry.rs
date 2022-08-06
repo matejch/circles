@@ -1,5 +1,4 @@
 use std::fmt;
-use web_sys::console;
 use crate::ball::is_point_in_rect;
 use crate::geometry::Cells::{BottomLeft, BottomRight, TopLeft, TopRight};
 use crate::random::{random_range, random_sign, random_velocity};

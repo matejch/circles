@@ -15,5 +15,4 @@ pub const GROWS: f64 = 1.0;
 pub const EXPLODES: f64 = 9.0;
 
 // how fast the active ball shrinks after reaching FULL size
-pub const SHRINK: f64 = -7.0;
-
+pub const SHRINK: f64 = -15.0;

@@ -37,6 +37,10 @@ const-str = "0.4.3"
 
 
 
+rand = "0.8.5"
+getrandom = { version = "0.2", features = ["js"] }
+
+
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
@@ -50,7 +54,7 @@ features = [
 ]
 
 
-#[profile.release]
-#debug = true
+[profile.release]
+debug = true
 
 

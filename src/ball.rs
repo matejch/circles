@@ -1,12 +1,13 @@
-use std::ops::Div;
-use js_sys::Math::{max, min};
-use web_sys::console;
+use crate::ball::BallState::{Expanding, Normal, Shrinking, Vanish};
 use crate::constants;
-use crate::constants::{TINY, SMALL, BIG, LARGE, FULL, SLOW, FAST, EXPLODES, GROWS, SHRINK, COLOSSAL};
-use crate::random::{random_range, random_sign, random_velocity};
+use crate::constants::{
+    BIG, COLOSSAL, EXPLODES, FAST, FULL, GROWS, LARGE, SHRINK, SLOW, SMALL, TINY,
+};
 use crate::geometry::{Point, Rect};
-use crate::ball::BallState::{Shrinking, Vanish, Normal, Expanding};
-
+use crate::random::{random_range, random_range_descending};
+use js_sys::Math::min;
+use std::ops::Div;
+use web_sys::console;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Color {
@@ -22,28 +23,72 @@ impl Color {
 }
 
 pub const BLACK: Color = Color { r: 0, g: 0, b: 0 };
-pub const WHITE: Color = Color { r: 255, g: 255, b: 255 };
-pub const GRAY: Color = Color { r: 128, g: 128, b: 128 };
+pub const WHITE: Color = Color {
+    r: 255,
+    g: 255,
+    b: 255,
+};
+pub const GRAY: Color = Color {
+    r: 128,
+    g: 128,
+    b: 128,
+};
 pub const RED: Color = Color { r: 255, g: 0, b: 0 };
 pub const BLUE: Color = Color { r: 0, g: 0, b: 255 };
 pub const GREEN: Color = Color { r: 0, g: 255, b: 0 };
-pub const YELLOW: Color = Color { r: 255, g: 255, b: 0 };
-pub const CYAN: Color = Color { r: 0, g: 255, b: 255 };
-pub const MAGENTA: Color = Color { r: 255, g: 0, b: 255 };
-pub const TEAL: Color = Color { r: 0, g: 128, b: 128 };
-pub const OLIVE: Color = Color { r: 128, g: 128, b: 0 };
-pub const PURPLE: Color = Color { r: 128, g: 0, b: 128 };
+pub const YELLOW: Color = Color {
+    r: 255,
+    g: 255,
+    b: 0,
+};
+pub const CYAN: Color = Color {
+    r: 0,
+    g: 255,
+    b: 255,
+};
+pub const MAGENTA: Color = Color {
+    r: 255,
+    g: 0,
+    b: 255,
+};
+pub const TEAL: Color = Color {
+    r: 0,
+    g: 128,
+    b: 128,
+};
+pub const OLIVE: Color = Color {
+    r: 128,
+    g: 128,
+    b: 0,
+};
+pub const PURPLE: Color = Color {
+    r: 128,
+    g: 0,
+    b: 128,
+};
 pub const NAVY: Color = Color { r: 0, g: 0, b: 128 };
 pub const MAROON: Color = Color { r: 128, g: 0, b: 0 };
 pub const FORREST: Color = Color { r: 0, g: 128, b: 0 };
-pub const SILVER: Color = Color { r: 192, g: 192, b: 192 };
-pub const BROWN: Color = Color { r: 128, g: 69, b: 19 };
-pub const ORANGE: Color = Color { r: 255, g: 165, b: 0 };
-pub const GOLD: Color = Color { r: 255, g: 215, b: 0 };
-
-
-pub const DEBUG_RED: Color = Color { r: 50, g: 0, b: 0 };
-
+pub const SILVER: Color = Color {
+    r: 192,
+    g: 192,
+    b: 192,
+};
+pub const BROWN: Color = Color {
+    r: 128,
+    g: 69,
+    b: 19,
+};
+pub const ORANGE: Color = Color {
+    r: 255,
+    g: 165,
+    b: 0,
+};
+pub const GOLD: Color = Color {
+    r: 255,
+    g: 215,
+    b: 0,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BallState {
@@ -53,7 +98,7 @@ pub enum BallState {
     Vanish,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct BallType {
     color: Color,
     radius: f64,
@@ -63,41 +108,220 @@ pub struct BallType {
     name: &'static str,
 }
 
+impl BallType {
+    pub fn random_ball_type() -> BallType {
+        let ball_types = vec![
+            WHITE_BALL,
+            ORANGE_BALL,
+            BROWN_BALL,
+            NAVY_BALL,
+            PURPLE_BALL,
+            GRAY_BALL,
+            YELLOW_BALL,
+            RED_BALL,
+            CYAN_BALL,
+            MAGENTA_BALL,
+            TEAL_BALL,
+            BLUE_BALL,
+            GREEN_BALL,
+            OLIVE_BALL,
+            MAROON_BALL,
+            FORREST_BALL,
+            SILVER_BALL,
+            //            BLACK_BALL,
+        ];
+
+        let elm = ball_types[random_range_descending(0, ball_types.len())];
+
+        return elm;
+    }
+}
+
 macro_rules! impl_ball_types_constants {
     ($name: ident, $color: expr, $radius: expr, $velocity: expr, $growth_size: expr, $growth_speed: expr, $ball_name: expr) => {
-        pub const $name: BallType = BallType{
+        pub const $name: BallType = BallType {
             color: $color,
             radius: $radius,
             velocity: $velocity,
             growth_speed: $growth_speed,
             growth_size: $growth_size,
-            name: $ball_name
-         };
-    }
+            name: $ball_name,
+        };
+    };
 }
 
+impl_ball_types_constants!(
+    BLACK_BALL,
+    BLACK,
+    LARGE,
+    FAST,
+    COLOSSAL,
+    GROWS,
+    const_str::to_str!("BLACK_BALL")
+);
+impl_ball_types_constants!(
+    WHITE_BALL,
+    WHITE,
+    BIG,
+    SLOW,
+    LARGE,
+    EXPLODES,
+    const_str::to_str!("WHITE_BALL")
+);
+impl_ball_types_constants!(
+    GRAY_BALL,
+    GRAY,
+    SMALL,
+    FAST,
+    FULL,
+    GROWS,
+    const_str::to_str!("GRAY_BALL")
+);
+impl_ball_types_constants!(
+    RED_BALL,
+    RED,
+    SMALL,
+    FAST,
+    FULL,
+    EXPLODES,
+    const_str::to_str!("RED_BALL")
+);
+impl_ball_types_constants!(
+    BLUE_BALL,
+    BLUE,
+    SMALL,
+    FAST,
+    FULL,
+    GROWS,
+    const_str::to_str!("BLUE_BALL")
+);
+impl_ball_types_constants!(
+    GREEN_BALL,
+    GREEN,
+    SMALL,
+    FAST,
+    FULL,
+    EXPLODES,
+    const_str::to_str!("GREEN_BALL")
+);
+impl_ball_types_constants!(
+    YELLOW_BALL,
+    YELLOW,
+    SMALL,
+    SLOW,
+    FULL,
+    GROWS,
+    const_str::to_str!("YELLOW_BALL")
+);
+impl_ball_types_constants!(
+    CYAN_BALL,
+    CYAN,
+    SMALL,
+    SLOW,
+    FULL,
+    EXPLODES,
+    const_str::to_str!("CYAN_BALL")
+);
+impl_ball_types_constants!(
+    MAGENTA_BALL,
+    MAGENTA,
+    SMALL,
+    SLOW,
+    FULL,
+    GROWS,
+    const_str::to_str!("MAGENTA_BALL")
+);
+impl_ball_types_constants!(
+    TEAL_BALL,
+    TEAL,
+    SMALL,
+    SLOW,
+    FULL,
+    EXPLODES,
+    const_str::to_str!("TEAL_BALL")
+);
+impl_ball_types_constants!(
+    OLIVE_BALL,
+    OLIVE,
+    TINY,
+    FAST,
+    FULL,
+    GROWS,
+    const_str::to_str!("OLIVE_BALL")
+);
+impl_ball_types_constants!(
+    PURPLE_BALL,
+    PURPLE,
+    TINY,
+    FAST,
+    FULL,
+    EXPLODES,
+    const_str::to_str!("PURPLE_BALL")
+);
+impl_ball_types_constants!(
+    NAVY_BALL,
+    NAVY,
+    TINY,
+    FAST,
+    FULL,
+    GROWS,
+    const_str::to_str!("NAVY_BALL")
+);
+impl_ball_types_constants!(
+    MAROON_BALL,
+    MAROON,
+    TINY,
+    FAST,
+    FULL,
+    EXPLODES,
+    const_str::to_str!("MAROON_BALL")
+);
+impl_ball_types_constants!(
+    FORREST_BALL,
+    FORREST,
+    TINY,
+    SLOW,
+    FULL,
+    GROWS,
+    const_str::to_str!("FORREST_BALL")
+);
+impl_ball_types_constants!(
+    SILVER_BALL,
+    SILVER,
+    TINY,
+    SLOW,
+    COLOSSAL,
+    EXPLODES,
+    const_str::to_str!("SILVER_BALL")
+);
+impl_ball_types_constants!(
+    ORANGE_BALL,
+    ORANGE,
+    TINY,
+    SLOW,
+    FULL,
+    GROWS,
+    const_str::to_str!("ORANGE_BALL")
+);
+impl_ball_types_constants!(
+    BROWN_BALL,
+    BROWN,
+    TINY,
+    SLOW,
+    FULL,
+    EXPLODES,
+    const_str::to_str!("BROWN_BALL")
+);
 
-impl_ball_types_constants!(BLACK_BALL, BLACK, LARGE, FAST, COLOSSAL, GROWS,const_str::to_str!("BLACK_BALL"));
-impl_ball_types_constants!(WHITE_BALL, WHITE, BIG, SLOW, LARGE, EXPLODES,const_str::to_str!("WHITE_BALL"));
-impl_ball_types_constants!(GRAY_BALL, GRAY, SMALL, FAST, FULL, GROWS,const_str::to_str!("GRAY_BALL"));
-impl_ball_types_constants!(RED_BALL, RED, SMALL, FAST, FULL, EXPLODES,const_str::to_str!("RED_BALL"));
-impl_ball_types_constants!(BLUE_BALL, BLUE, SMALL, FAST, FULL, GROWS,const_str::to_str!("BLUE_BALL"));
-impl_ball_types_constants!(GREEN_BALL, GREEN, SMALL, FAST, FULL, EXPLODES,const_str::to_str!("GREEN_BALL"));
-impl_ball_types_constants!(YELLOW_BALL, YELLOW, SMALL, SLOW, FULL, GROWS,const_str::to_str!("YELLOW_BALL"));
-impl_ball_types_constants!(CYAN_BALL, CYAN, SMALL, SLOW, FULL, EXPLODES,const_str::to_str!("CYAN_BALL"));
-impl_ball_types_constants!(MAGENTA_BALL, MAGENTA, SMALL, SLOW, FULL, GROWS,const_str::to_str!("MAGENTA_BALL"));
-impl_ball_types_constants!(TEAL_BALL, TEAL, SMALL, SLOW, FULL, EXPLODES,const_str::to_str!("TEAL_BALL"));
-impl_ball_types_constants!(OLIVE_BALL, OLIVE, TINY, FAST, FULL, GROWS,const_str::to_str!("OLIVE_BALL"));
-impl_ball_types_constants!(PURPLE_BALL, PURPLE, TINY, FAST, FULL, EXPLODES,const_str::to_str!("PURPLE_BALL"));
-impl_ball_types_constants!(NAVY_BALL, NAVY, TINY, FAST, FULL, GROWS,const_str::to_str!("NAVY_BALL"));
-impl_ball_types_constants!(MAROON_BALL, MAROON, TINY, FAST, FULL, EXPLODES,const_str::to_str!("MAROON_BALL"));
-impl_ball_types_constants!(FORREST_BALL, FORREST, TINY, SLOW, FULL, GROWS,const_str::to_str!("FORREST_BALL"));
-impl_ball_types_constants!(SILVER_BALL, SILVER, TINY, SLOW, COLOSSAL, EXPLODES,const_str::to_str!("SILVER_BALL"));
-impl_ball_types_constants!(ORANGE_BALL, ORANGE, TINY, SLOW, FULL, GROWS,const_str::to_str!("ORANGE_BALL"));
-impl_ball_types_constants!(BROWN_BALL, BROWN, TINY, SLOW, FULL, EXPLODES,const_str::to_str!("BROWN_BALL"));
-
-impl_ball_types_constants!(ACTIVE_BALL, GOLD, TINY, SLOW, FULL, GROWS, const_str::to_str!("ACTIVE_BALL"));
-
+impl_ball_types_constants!(
+    ACTIVE_BALL,
+    GOLD,
+    TINY,
+    SLOW,
+    FULL,
+    GROWS,
+    const_str::to_str!("ACTIVE_BALL")
+);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ball {
@@ -116,11 +340,17 @@ pub struct Ball {
     pub next_radius: f64,
     pub next_velocity: Point,
     pub next_ball_state: BallState,
-
+    pub is_captured: bool,
 }
 
 impl Ball {
-    pub fn new(id: usize, pos: Point, velocity: Point, ball_type: BallType, ball_state: BallState) -> Self {
+    pub fn new(
+        id: usize,
+        pos: Point,
+        velocity: Point,
+        ball_type: BallType,
+        ball_state: BallState,
+    ) -> Self {
         Self {
             id,
             ball_type: ball_type.name,
@@ -136,6 +366,7 @@ impl Ball {
             next_velocity: velocity,
             next_radius: ball_type.radius,
             next_ball_state: ball_state,
+            is_captured: false,
         }
     }
 
@@ -158,6 +389,7 @@ impl Ball {
             next_velocity: vel,
             next_radius: ball_type.radius,
             next_ball_state: Normal,
+            is_captured: false,
         }
     }
 
@@ -224,6 +456,10 @@ impl Ball {
         self.ball_state = state;
     }
 
+    pub fn set_captured(&mut self) {
+        self.is_captured = true;
+    }
+
     pub fn show_state(&self) {
         console::log_1(&format!("bala na poziciji: {} {}", self.pos.x, self.pos.y).into());
     }
@@ -254,13 +490,16 @@ pub struct BallPairIds {
 }
 
 impl BallPairIds {
-    pub(crate) fn into_array(self) -> [usize; 2] { [self.first, self.second] }
+    pub(crate) fn into_array(self) -> [usize; 2] {
+        [self.first, self.second]
+    }
 }
 
 impl PartialEq for BallPairIds {
     fn eq(&self, other: &Self) -> bool {
         if (self.first == other.first && self.second == other.second)
-            || (self.first == other.second && self.second == other.first) {
+            || (self.first == other.second && self.second == other.first)
+        {
             return true;
         }
         false
@@ -274,10 +513,9 @@ impl IntoIterator for BallPairIds {
     type IntoIter = std::array::IntoIter<usize, 2>;
 
     fn into_iter(self) -> Self::IntoIter {
-        std::array::IntoIter::new([self.first, self.second])
+        IntoIterator::into_iter([self.first, self.second])
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct BallPair {
@@ -288,7 +526,8 @@ pub struct BallPair {
 impl PartialEq for BallPair {
     fn eq(&self, other: &Self) -> bool {
         if (self.first == other.first && self.second == other.second)
-            || (self.first == other.second && self.second == other.first) {
+            || (self.first == other.second && self.second == other.first)
+        {
             return true;
         }
         false
@@ -299,7 +538,8 @@ impl Eq for BallPair {}
 
 impl BallPair {
     pub fn is_collision(&self) -> bool {
-        balls_distance_squared(self.first, self.second) <= (f64::powi(self.first.radius, 2) + f64::powi(self.second.radius, 2))
+        balls_distance_squared(self.first, self.second)
+            <= (f64::powi(self.first.radius, 2) + f64::powi(self.second.radius, 2))
     }
 
     pub fn is_collision_bb(&self) -> bool {
@@ -307,7 +547,6 @@ impl BallPair {
         let bb_second = self.second.bounding_rect_current();
 
         bb_first.intersects(bb_second)
-
     }
 }
 
@@ -319,23 +558,46 @@ pub fn balls_distance_squared(ball1: Ball, ball2: Ball) -> f64 {
     return circles_distance_squared(ball1.pos.x, ball1.pos.y, ball2.pos.x, ball2.pos.y);
 }
 
-
 pub fn is_point_in_rect(x: f64, y: f64, w: f64, h: f64, point_x: f64, point_y: f64) -> bool {
-    if point_x >= x
-        && point_x <= x + w
-        && point_y >= y
-        && point_y <= y + h {
+    if point_x >= x && point_x <= x + w && point_y >= y && point_y <= y + h {
         return true;
     }
     false
 }
 
-
 pub fn is_ball_in_cell(x: f64, y: f64, w: f64, h: f64, ball: &Ball) -> bool {
-    let left_point = is_point_in_rect(x, y, w, h, ball.next_position.x - ball.next_radius, ball.next_position.y);
-    let right_point = is_point_in_rect(x, y, w, h, ball.next_position.x + ball.next_radius, ball.next_position.y);
-    let top_point = is_point_in_rect(x, y, w, h, ball.next_position.x, ball.next_position.y + ball.next_radius);
-    let bottom_point = is_point_in_rect(x, y, w, h, ball.next_position.x, ball.next_position.y - ball.next_radius);
+    let left_point = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x - ball.next_radius,
+        ball.next_position.y,
+    );
+    let right_point = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x + ball.next_radius,
+        ball.next_position.y,
+    );
+    let top_point = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x,
+        ball.next_position.y + ball.next_radius,
+    );
+    let bottom_point = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x,
+        ball.next_position.y - ball.next_radius,
+    );
 
     if left_point || right_point || top_point || bottom_point {
         return true;
@@ -344,12 +606,39 @@ pub fn is_ball_in_cell(x: f64, y: f64, w: f64, h: f64, ball: &Ball) -> bool {
     false
 }
 
-
 pub fn is_ball_in_cell_diag(x: f64, y: f64, w: f64, h: f64, ball: &Ball) -> bool {
-    let top_left = is_point_in_rect(x, y, w, h, ball.next_position.x - ball.next_radius, ball.next_position.y + ball.next_radius);
-    let top_right = is_point_in_rect(x, y, w, h, ball.next_position.x + ball.next_radius, ball.next_position.y + ball.next_radius);
-    let bottom_left = is_point_in_rect(x, y, w, h, ball.next_position.x - ball.next_radius, ball.next_position.y - ball.next_radius);
-    let bottom_right = is_point_in_rect(x, y, w, h, ball.next_position.x + ball.next_radius, ball.next_position.y - ball.next_radius);
+    let top_left = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x - ball.next_radius,
+        ball.next_position.y + ball.next_radius,
+    );
+    let top_right = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x + ball.next_radius,
+        ball.next_position.y + ball.next_radius,
+    );
+    let bottom_left = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x - ball.next_radius,
+        ball.next_position.y - ball.next_radius,
+    );
+    let bottom_right = is_point_in_rect(
+        x,
+        y,
+        w,
+        h,
+        ball.next_position.x + ball.next_radius,
+        ball.next_position.y - ball.next_radius,
+    );
 
     if top_left || top_right || bottom_left || bottom_right {
         return true;
@@ -358,13 +647,16 @@ pub fn is_ball_in_cell_diag(x: f64, y: f64, w: f64, h: f64, ball: &Ball) -> bool
     false
 }
 
-
 pub fn resolve_collision_active(ball1: &mut Ball, ball2: &mut Ball) {
-    if (ball1.ball_state == Expanding || ball1.ball_state == Shrinking) && ball2.ball_state == Normal {
+    if (ball1.ball_state == Expanding || ball1.ball_state == Shrinking)
+        && ball2.ball_state == Normal
+    {
         ball2.change_ball_state(Expanding);
     }
 
-    if (ball2.ball_state == Expanding || ball2.ball_state == Shrinking) && ball2.ball_state == Normal {
+    if (ball2.ball_state == Expanding || ball2.ball_state == Shrinking)
+        && ball2.ball_state == Normal
+    {
         ball1.change_ball_state(Expanding);
     }
 }
@@ -385,12 +677,12 @@ pub fn resolve_collision(mut pair: BallPair) -> BallPair {
     let m1 = f64::powi(pair.first.radius, 2);
     let m2 = f64::powi(pair.second.radius, 2);
 
-    let energy_before = 0.5 * (m1 * (f64::powi(vx1b, 2) + f64::powi(vy1b, 2)) + m2 * (f64::powi(vx2b, 2) + f64::powi(vy2b, 2)));
-
+    let energy_before = 0.5
+        * (m1 * (f64::powi(vx1b, 2) + f64::powi(vy1b, 2))
+            + m2 * (f64::powi(vx2b, 2) + f64::powi(vy2b, 2)));
 
     return pair;
 }
-
 
 pub fn calc_moment_of_collision(ball1: &Ball, ball2: &Ball) -> Option<f64> {
     let first_x = ball1.pos.x;
@@ -417,20 +709,22 @@ pub fn calc_moment_of_collision(ball1: &Ball, ball2: &Ball) -> Option<f64> {
         second_next_x,
         second_y,
         second_next_y,
-        second_r);
+        second_r,
+    );
 }
 
-
-pub fn calc_moment_of_collision_helper(first_x: f64,
-                                       first_next_x: f64,
-                                       first_y: f64,
-                                       first_next_y: f64,
-                                       first_r: f64,
-                                       second_x: f64,
-                                       second_next_x: f64,
-                                       second_y: f64,
-                                       second_next_y: f64,
-                                       second_r: f64) -> Option<f64> {
+pub fn calc_moment_of_collision_helper(
+    first_x: f64,
+    first_next_x: f64,
+    first_y: f64,
+    first_next_y: f64,
+    first_r: f64,
+    second_x: f64,
+    second_next_x: f64,
+    second_y: f64,
+    second_next_y: f64,
+    second_r: f64,
+) -> Option<f64> {
     let a_dif = first_x - second_x;
     let b_dif = first_next_x - second_next_x;
     let c_dif = first_y - second_y;
