@@ -37,6 +37,7 @@ pub struct GameState {
     pub result: GameResult,
     pub shots: usize,
     pub tree: Option<Box<QuadTreeNode>>,
+    pub frame_id: usize,
 }
 
 impl GameState {
@@ -92,6 +93,7 @@ impl GameState {
             is_render_debug: false,
             all_levels,
             level_id: 0,
+            frame_id: 0,
         };
 
         new_state.next_level();
@@ -116,7 +118,7 @@ impl GameState {
         self.captured_required = level.num_captured;
         self.shots = level.max_shots;
         self.result = GameResult::Playing;
-
+        self.frame_id = 0;
         while self.objects.len() < level.num_of_balls {
             self.insert_object(&mut Ball::random_ball(
                 0,
@@ -132,6 +134,7 @@ impl GameState {
     pub fn restart(&mut self) {
         let level: Level = self.all_levels[self.level_id].clone();
 
+        self.frame_id = 0;
         self.captured = 0;
         self.captured_required = level.num_captured;
         self.shots = level.max_shots;
@@ -273,6 +276,7 @@ impl GameState {
 
     pub fn tick(&mut self) {
         let num_objects = &self.objects.len();
+        self.frame_id += 1;
         self.objects.retain(|_key, obj| obj.ball_state != Vanish);
         self.captured = self.get_number_of_vanished_balls()
             + self.objects.values().filter(|obj| obj.is_captured).count();

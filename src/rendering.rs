@@ -1,15 +1,20 @@
-use crate::ball::{Ball, Color, BLACK, RED, WHITE};
+use crate::ball::{Ball, Color, BLACK, RED};
 use crate::GameState;
 use std::f64::consts::PI;
 use web_sys::{console, CanvasGradient, CanvasRenderingContext2d};
 
-impl GameState {
+pub struct Renderer<'a> {
+    pub gamestate: &'a GameState,
+}
+
+impl Renderer<'static> {
     pub fn render_state(&self, ctx: &mut CanvasRenderingContext2d, clear: bool) {
+        let state = self.gamestate;
         if clear {
             self.clear_canvas(ctx);
         }
 
-        if self.objects.is_empty() {
+        if state.objects.is_empty() {
             return;
         }
         // for (_, obj) in &self.objects {
@@ -18,15 +23,16 @@ impl GameState {
         //draw_rect(&ctx,bb.x, bb.y, bb.w, bb.h, BLACK);
         // }
 
-        for obj in self.objects.values() {
-            draw_ball(ctx, obj)
-        }
+        state
+            .objects
+            .values()
+            .into_iter()
+            .for_each(|obj| draw_ball(ctx, obj));
     }
 
     pub fn render_won(&self, ctx: &mut CanvasRenderingContext2d) {
         self.clear_canvas(ctx);
 
-        console::log_1(&format!("renderiram won").into());
         write_text(ctx, 30.0, 50.0, "Congratz! You won.");
         write_text(
             ctx,
@@ -37,20 +43,20 @@ impl GameState {
     }
 
     pub fn render_lost(&self, ctx: &mut CanvasRenderingContext2d) {
-        console::log_1(&format!("renderiram lost").into());
         self.clear_canvas(ctx);
         write_text(ctx, 10.0, 20.0, "you lost");
     }
 
     pub fn render_debug_collision_info(&self, ctx: &CanvasRenderingContext2d) {
+        let tree = self.gamestate.tree;
         self.clear_canvas(ctx);
         let mut i = 0.0;
 
-        if self.tree.is_none() {
+        if tree.is_none() {
             return;
         }
 
-        for line in self.tree.as_ref().unwrap().info_collisions().iter() {
+        for line in tree.as_ref().unwrap().info_collisions().iter() {
             write_text(ctx, 10.0, 20.0 + 15.0 * i, format!("{:#?}", line).as_str());
             i += 1.0;
         }
@@ -58,20 +64,21 @@ impl GameState {
 
     pub fn render_debug_ball_quad_info(&self, ctx: &CanvasRenderingContext2d) {
         self.clear_canvas(ctx);
+        let tree = self.gamestate.tree;
         let mut i = 0.0;
 
-        if self.tree.is_none() {
+        if tree.is_none() {
             return;
         }
 
-        for line in self.tree.as_ref().unwrap().info_balls().iter() {
+        tree.as_ref().unwrap().info_balls().iter().for_each(|line| {
             write_text(ctx, 10.0, 20.0 + 15.0 * i, format!("{:#?}", line).as_str());
             i += 1.0;
-        }
+        });
     }
 
     pub fn clear_canvas(&self, ctx: &CanvasRenderingContext2d) {
-        ctx.clear_rect(0.0, 0.0, self.rect.w, self.rect.h);
+        ctx.clear_rect(0.0, 0.0, self.gamestate.rect.w, self.gamestate.rect.h);
     }
 
     pub fn render_quad_tree(&self, ctx: &CanvasRenderingContext2d, clear: bool) {
@@ -79,7 +86,7 @@ impl GameState {
             self.clear_canvas(ctx);
         }
 
-        let rects = self.get_rectangles();
+        let rects = self.gamestate.get_rectangles();
 
         for r in rects {
             if r.many {
@@ -148,7 +155,6 @@ fn draw_active_rect(
     color: Color,
 ) {
     ctx.begin_path();
-    console::log_1(&format!("{} {}", x, y).into());
     ctx.set_fill_style(&color.to_string().into());
     ctx.set_stroke_style(&color.to_string().into());
     ctx.fill_rect(x, y, width, height);
