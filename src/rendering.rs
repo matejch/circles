@@ -8,6 +8,10 @@ pub struct Renderer<'a> {
 }
 
 impl Renderer<'static> {
+    pub fn new(game: GameState) -> Self {
+        Self { gamestate: &game }
+    }
+
     pub fn render_state(&self, ctx: &mut CanvasRenderingContext2d, clear: bool) {
         let state = self.gamestate;
         if clear {

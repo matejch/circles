@@ -10,6 +10,7 @@ mod utils;
 use logic::GameState;
 
 use js_sys::Function;
+use rendering::Renderer;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -31,12 +32,12 @@ thread_local! {
 
 
     static HANDLE_KEYDOWN: Closure<dyn FnMut(KeyboardEvent)> =
-    Closure::wrap(Box::new(|evt: KeyboardEvent| GAME.with(|game| {
+    Closure::wrap(Box::new(|evt: KeyboardEvent| GAME.with(|game_obj| {
 
         let change: ChangeState = match &evt.key()[..] {
                 "G" | "g" => ChangeState::PlayPause,
                 "N" | "n" => {
-                    if game.borrow().check_win_lose() == GameResult::Won {
+                    if game_obj.borrow().check_win_lose() == GameResult::Won {
                         ChangeState::NextLevel
                     } else {
                         ChangeState::NoChange
@@ -48,19 +49,19 @@ thread_local! {
 
                 _=> ChangeState::NoChange
        };
-
+    let game = game_obj.borrow_mut();
         match change {
             ChangeState::PlayPause => {
-                game.borrow_mut().pause_play();
+                game.pause_play();
             },
             ChangeState::NextLevel => {
-                game.borrow_mut().next_level();
+                game.next_level();
             },
             ChangeState::RestartLevel => {
-                game.borrow_mut().restart();
+                game.restart();
             }
             ChangeState::Quit => {
-                game.borrow_mut().quit();
+                game.quit();
             },
     ChangeState::NoChange => {
 
@@ -124,6 +125,7 @@ pub fn run() -> Result<(), JsValue> {
     let g = f.clone();
     let mut ctx = get_context();
     //let debug_ctx = get_debug_context();
+    let renderer = Renderer::new(GAME.into());
 
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         GAME.with(|game| {

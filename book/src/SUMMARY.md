@@ -20,6 +20,10 @@ How do I make a simple browser game?
 
 • What problem are you solving?
 
+rust to wasm (minimal to no javascript)
+animation (reanimate frame)
+collision detection
+collision resolution
 
 
 
@@ -27,7 +31,6 @@ How do I make a simple browser game?
 
 
 Making a game without javascript, fancy graphics.
-
 
 
 • How are you going to get there?
